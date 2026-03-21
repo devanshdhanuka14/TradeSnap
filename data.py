@@ -118,7 +118,7 @@ def fetch_news(company_name: str, n: int = 3):
     
     url = "https://newsapi.org/v2/everything"
     params = {
-        "q": company_name,
+        "q": f'"{company_name}" stock OR shares OR NSE',
         "apiKey": api_key,
         "language": "en",
         "sortBy": "publishedAt",
