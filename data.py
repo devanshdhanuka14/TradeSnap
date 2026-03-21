@@ -81,6 +81,25 @@ def get_signal(df: pd.DataFrame):
 
     return f"{verdict} · {trend} · RSI {rsi} ({momentum})"
 
+def get_52w_position(df: pd.DataFrame):
+    high52 = df["High"].max()
+    low52 = df["Low"].min()
+    current = df.iloc[-1]["Close"]
+
+    position_pct = (current - low52) / (high52 - low52) * 100
+    pct_from_low = (current - low52) / low52 * 100
+    pct_from_high = (high52 - current) / high52 * 100
+
+    return {
+        "52w_high": round(high52, 2),
+        "52w_low": round(low52, 2),
+        "current": round(current, 2),
+        "position_pct": round(position_pct, 1),
+        "pct_from_low": round(pct_from_low, 1),
+        "pct_from_high": round(pct_from_high, 1),
+    }
+
+
 
 if __name__ == "__main__":
     df = fetch_stock_data("RELIANCE.NS")
@@ -92,3 +111,6 @@ if __name__ == "__main__":
     
     signal = get_signal(df)
     print(f"Signal: {signal}")
+
+    w52 = get_52w_position(df)
+    print(f"\n52W Position: {w52}")
