@@ -6,11 +6,16 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-def fetch_stock_data(ticker: str, period: str = "6mo"):
+def fetch_stock_data(ticker: str, chart_period: str = "6mo"):
     stock = yf.Ticker(ticker)
-    df = stock.history(period=period)
-    df.drop(columns=["Dividends", "Stock Splits"], inplace=True)
-    return df
+    #fetching 1 year data for 52 week high low comparision
+    df_1y = stock.history(period="1y")
+    df_1y.drop(columns=["Dividends", "Stock Splits"], inplace=True)
+    #for chart 6month data is enough
+    df_chart = stock.history(period=chart_period)
+    df_chart.drop(columns=["Dividends", "Stock Splits"], inplace=True)
+    
+    return df_chart, df_1y
 
 def compute_indicators(df: pd.DataFrame):
     df["MA20"] = df["Close"].rolling(20).mean()
@@ -159,20 +164,18 @@ def fetch_news(company_name: str, n: int = 3):
 
 
 if __name__ == "__main__":
-    df = fetch_stock_data("RELIANCE.NS")
-    df = compute_indicators(df)
-    print(df[["Close", "MA20", "MA50", "RSI", "Volume", "AvgVol20"]].tail())
-    
-    spike, ratio = is_volume_spike(df)
-    print(f"\nVolume spike: {spike} ({ratio}x average)")
-    
-    signal = get_signal(df)
+    df_chart, df_1y = fetch_stock_data("RELIANCE.NS", chart_period="6mo")
+    df_chart = compute_indicators(df_chart)
+
+    spike, ratio = is_volume_spike(df_chart)
+    print(f"Volume spike: {spike} ({ratio}x average)")
+
+    signal = get_signal(df_chart)
     print(f"Signal: {signal}")
 
-    w52 = get_52w_position(df)
-    print(f"\n52W Position: {w52}")
+    w52 = get_52w_position(df_1y)  # uses full 1 year data
+    print(f"52W Position: {w52}")
 
     news = fetch_news("Reliance Industries")
-    print(f"\nNews:")
     for article in news:
         print(f"- {article['title']} ({article['source']}, {article['publishedAt']})")
