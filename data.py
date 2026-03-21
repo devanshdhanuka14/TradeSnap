@@ -1,6 +1,11 @@
 import yfinance as yf
 import pandas as pd
 
+import requests
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
 def fetch_stock_data(ticker: str, period: str = "6mo"):
     stock = yf.Ticker(ticker)
     df = stock.history(period=period)
@@ -99,6 +104,58 @@ def get_52w_position(df: pd.DataFrame):
         "pct_from_high": round(pct_from_high, 1),
     }
 
+def fetch_news(company_name: str, n: int = 3):
+    api_key = os.getenv("NEWS_API_KEY")
+    
+    if not api_key:
+        print("Error: NEWS_API_KEY not found in .env")
+        return []
+    
+    url = "https://newsapi.org/v2/everything"
+    params = {
+        "q": company_name,
+        "apiKey": api_key,
+        "language": "en",
+        "sortBy": "publishedAt",
+        "pageSize": n,
+    }
+    
+    try:
+        response = requests.get(url, params=params, timeout=5)
+        data = response.json()
+        
+        if data.get("status") != "ok":
+            print(f"NewsAPI error: {data.get('message', 'Unknown error')}")
+            return []
+        
+        articles = data.get("articles", [])[:n]
+        
+        if not articles:
+            print(f"No articles found for: {company_name}")
+            return []
+        
+        return [
+            {
+                "title": a.get("title", ""),
+                "source": a.get("source", {}).get("name", ""),
+                "url": a.get("url", "#"),
+                "publishedAt": a.get("publishedAt", "")[:10],
+            }
+            for a in articles
+        ]
+    
+    except requests.exceptions.Timeout:
+        print("Error: NewsAPI request timed out")
+        return []
+    
+    except requests.exceptions.ConnectionError:
+        print("Error: No internet connection")
+        return []
+    
+    except Exception as e:
+        print(f"Unexpected error fetching news: {e}")
+        return []
+
 
 
 if __name__ == "__main__":
@@ -114,3 +171,8 @@ if __name__ == "__main__":
 
     w52 = get_52w_position(df)
     print(f"\n52W Position: {w52}")
+
+    news = fetch_news("Reliance Industries")
+    print(f"\nNews:")
+    for article in news:
+        print(f"- {article['title']} ({article['source']}, {article['publishedAt']})")
