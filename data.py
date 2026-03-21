@@ -7,15 +7,25 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def fetch_stock_data(ticker: str, chart_period: str = "6mo"):
-    stock = yf.Ticker(ticker)
-    #fetching 1 year data for 52 week high low comparision
-    df_1y = stock.history(period="1y")
-    df_1y.drop(columns=["Dividends", "Stock Splits"], inplace=True)
-    #for chart 6month data is enough
-    df_chart = stock.history(period=chart_period)
-    df_chart.drop(columns=["Dividends", "Stock Splits"], inplace=True)
+    try:
+        stock = yf.Ticker(ticker)
+        #fetching 1 year stock data for 52W high low comparision
+        #fetching 6months data only for charts so its more relevant for short term tracking and investments
+        df_1y = stock.history(period="1y")
+        df_chart = stock.history(period=chart_period)
+        
+        if df_1y.empty or df_chart.empty:
+            print(f"Error: No data found for {ticker}. Check the ticker symbol.")
+            return None, None
+        
+        df_1y.drop(columns=["Dividends", "Stock Splits"], inplace=True)
+        df_chart.drop(columns=["Dividends", "Stock Splits"], inplace=True)
+        
+        return df_chart, df_1y
     
-    return df_chart, df_1y
+    except Exception as e:
+        print(f"Error fetching {ticker}: {e}")
+        return None, None
 
 def compute_indicators(df: pd.DataFrame):
     df["MA20"] = df["Close"].rolling(20).mean()
@@ -37,6 +47,8 @@ def is_volume_spike(df: pd.DataFrame, threshold: float = 1.5):
     last = df.iloc[-1]
     vol = last["Volume"]
     avg = last["AvgVol20"]
+    if pd.isna(avg) or avg == 0:
+        return False, 0.0
     ratio = vol / avg
     spike = ratio >= threshold
     return spike, round(ratio, 2)
