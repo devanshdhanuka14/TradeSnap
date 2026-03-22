@@ -11,12 +11,7 @@ from requests.adapters import HTTPAdapter
 
 def fetch_stock_data(ticker: str, chart_period: str = "6mo"):
     try:
-        session = requests.Session()
-        session.headers.update({
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-        })
-        
-        stock = yf.Ticker(ticker, session=session)
+        stock = yf.Ticker(ticker)
 
         df_1y = stock.history(period="1y")
         df_chart = stock.history(period=chart_period)
@@ -35,7 +30,7 @@ def fetch_stock_data(ticker: str, chart_period: str = "6mo"):
     except Exception as e:
         print(f"Error fetching {ticker}: {e}")
         return None, None, None
-
+    
 def compute_indicators(df: pd.DataFrame):
     df["MA20"] = df["Close"].rolling(20).mean()
     df["MA50"] = df["Close"].rolling(50).mean()
