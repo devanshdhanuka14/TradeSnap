@@ -93,80 +93,126 @@ if run:
     else:
         snapshot = []
         for ticker in tickers:
-            st.subheader(ticker)
-            
-            df_chart, df_1y = fetch_stock_data(ticker, chart_period)
-            
+            df_chart, df_1y, company_name = fetch_stock_data(ticker, chart_period)
+
             if df_chart is None:
                 st.warning(f"Could not fetch data for {ticker}. Check the ticker symbol.")
                 continue
-            
+
             df_chart = compute_indicators(df_chart)
-            
+
             spike, ratio = is_volume_spike(df_chart, vol_threshold)
-            signal = get_signal(df_chart)
+            verdict, trend, reasoning = get_signal(df_chart)
             w52 = get_52w_position(df_1y)
-            
+
             last = df_chart.iloc[-1]
             prev_close = df_chart.iloc[-2]["Close"]
-
             price = last["Close"]
             change = price - prev_close
             change_pct = (change / prev_close) * 100
 
-            col1, col2, col3, col4 = st.columns(4)
+            # Header
+            st.markdown(
+                f"""
+                <div style="padding: 14px 18px; border-radius: 8px; background: linear-gradient(90deg, #1a1a2e, #16213e); border-left: 5px solid #00d4ff;">
+                    <span style="color: #00d4ff; font-size: 22px; font-weight: bold;">{ticker}</span>
+                    <span style="color: #aaaaaa; font-size: 15px; margin-left: 12px;">{company_name}</span>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+            st.markdown("<br>", unsafe_allow_html=True)
 
+            # Metrics
+            col1, col2, col3, col4 = st.columns(4)
             with col1:
                 st.metric("Price", f"₹{price:,.2f}", f"{change_pct:+.2f}%")
-
             with col2:
                 st.metric("52W High", f"₹{w52['52w_high']:,.2f}", f"{w52['pct_from_high']}% away")
-
             with col3:
                 st.metric("52W Low", f"₹{w52['52w_low']:,.2f}", f"{w52['pct_from_low']}% above")
-
             with col4:
                 st.metric("RSI", f"{round(last['RSI'], 1)}")
 
+            # Volume
             if spike:
                 st.warning(f"⚡ Volume Spike — {ratio}x average volume")
             else:
                 st.info(f"Volume: {int(last['Volume']):,} · Avg: {int(last['AvgVol20']):,} · {ratio}x average")
 
-                st.caption(f"Signal: {signal}")
+            # Signal
+            if "BUY" in verdict or "BULLISH" in verdict:
+                signal_color = "green"
+            elif "SELL" in verdict or "BEARISH" in verdict:
+                signal_color = "red"
+            else:
+                signal_color = "orange"
 
-                fig = build_chart(df_chart, ticker)
-                st.plotly_chart(fig, use_container_width=True)
+            st.markdown(
+                f"""
+                <div style="padding: 12px 16px; border-radius: 8px; border-left: 4px solid {signal_color}; background-color: #1a1a1a;">
+                    <span style="color: {signal_color}; font-weight: bold; font-size: 16px;">{verdict}</span><br>
+                    <span style="color: #aaaaaa; font-size: 13px;">{trend}</span><br>
+                    <span style="color: #cccccc; font-size: 13px; margin-top: 4px;">{reasoning}</span>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
-                with st.expander(f"📰 Top Headlines — {ticker}"):
-                    articles = fetch_news(ticker)
-    
-                    if not articles:
-                        st.write("No headlines found.")
-                    else:
-                        for article in articles:
-                            st.markdown(f"**[{article['title']}]({article['url']})**")
-                            st.caption(f"{article['source']} · {article['publishedAt']}")
-                            st.divider()
-                
+            # Chart
+            fig = build_chart(df_chart, ticker)
+            st.plotly_chart(fig, use_container_width=True)
 
-                snapshot.append({
-                    "Ticker": ticker,
-                    "Price": round(price, 2),
-                    "Change%": round(change_pct, 2),
-                    "RSI": round(last["RSI"], 1),
-                    "MA20": round(last["MA20"], 2),
-                    "MA50": round(last["MA50"], 2),
-                    "Volume": int(last["Volume"]),
-                    "AvgVol20": int(last["AvgVol20"]),
-                    "VolumeSpike": spike,
-                    "SpikeRatio": ratio,
-                    "52W_High": w52["52w_high"],
-                    "52W_Low": w52["52w_low"],
-                    "52W_Position%": w52["position_pct"],
-                    "Signal": signal,
-                }) 
-        st.divider()
+            with st.expander(f"📰 Top Headlines — {ticker}"):
+                articles = fetch_news(ticker)
+                if not articles:
+                    st.markdown(
+                        """
+                        <div style="padding: 12px; color: #aaaaaa; font-size: 13px;">
+                            No headlines found for this stock.
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+                else:
+                    for article in articles:
+                        st.markdown(
+                            f"""
+                            <div style="padding: 12px 16px; margin-bottom: 10px; border-radius: 8px; 
+                                        background-color: #1a1a2e; border-left: 3px solid #00d4ff;">
+                                <a href="{article['url']}" target="_blank" 
+                                style="color: #ffffff; font-size: 14px; font-weight: 500; 
+                                        text-decoration: none; line-height: 1.5;">
+                                    {article['title']}
+                                </a>
+                                <div style="margin-top: 6px; color: #888888; font-size: 11px;">
+                                    {article['source']} · {article['publishedAt']}
+                                </div>
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+
+            # Snapshot row
+            snapshot.append({
+                "Company": company_name,
+                "Ticker": ticker,
+                "Price": round(price, 2),
+                "Change%": round(change_pct, 2),
+                "RSI": round(last["RSI"], 1),
+                "MA20": round(last["MA20"], 2),
+                "MA50": round(last["MA50"], 2),
+                "Volume": int(last["Volume"]),
+                "AvgVol20": int(last["AvgVol20"]),
+                "VolumeSpike": spike,
+                "SpikeRatio": ratio,
+                "52W_High": w52["52w_high"],
+                "52W_Low": w52["52w_low"],
+                "52W_Position%": w52["position_pct"],
+                "Signal": verdict,
+            })
+
+            st.divider()
 
         if snapshot:
             import pandas as pd
