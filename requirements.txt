@@ -5,3 +5,4 @@ plotly
 requests
 feedparser
 python-dotenv
+curl_cffi
