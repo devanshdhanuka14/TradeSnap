@@ -1,6 +1,6 @@
 import yfinance as yf
 import pandas as pd
-
+from datetime import datetime, timedelta
 import requests
 import os
 from dotenv import load_dotenv
@@ -121,59 +121,39 @@ def get_52w_position(df: pd.DataFrame):
         "pct_from_high": round(pct_from_high, 1),
     }
 
-def fetch_news(company_name: str, n: int = 3):
-    api_key = os.getenv("NEWS_API_KEY")
+def fetch_news(ticker: str, n: int = 3):
+    import feedparser
     
-    if not api_key:
-        print("Error: NEWS_API_KEY not found in .env")
-        return []
+    # Convert ticker to search query
+    # RELIANCE.NS -> Reliance Industries NSE stock
+    symbol = ticker.replace(".NS", "")
+    query = f"{symbol} NSE stock"
+    query_encoded = query.replace(" ", "+")
     
-    url = "https://newsapi.org/v2/everything"
-    params = {
-        "q": f'"{company_name}" stock OR shares OR NSE',
-        "apiKey": api_key,
-        "language": "en",
-        "sortBy": "publishedAt",
-        "pageSize": n,
-    }
+    url = f"https://news.google.com/rss/search?q={query_encoded}&hl=en-IN&gl=IN&ceid=IN:en"
     
     try:
-        response = requests.get(url, params=params, timeout=5)
-        data = response.json()
+        feed = feedparser.parse(url)
         
-        if data.get("status") != "ok":
-            print(f"NewsAPI error: {data.get('message', 'Unknown error')}")
+        if not feed.entries:
+            print(f"No news found for {ticker}")
             return []
         
-        articles = data.get("articles", [])[:n]
+        articles = []
+        for entry in feed.entries[:n]:
+            articles.append({
+                "title": entry.get("title", ""),
+                "source": entry.get("source", {}).get("title", "Google News"),
+                "url": entry.get("link", "#"),
+                "publishedAt": entry.get("published", "")[:16],
+            })
         
-        if not articles:
-            print(f"No articles found for: {company_name}")
-            return []
-        
-        return [
-            {
-                "title": a.get("title", ""),
-                "source": a.get("source", {}).get("name", ""),
-                "url": a.get("url", "#"),
-                "publishedAt": a.get("publishedAt", "")[:10],
-            }
-            for a in articles
-        ]
-    
-    except requests.exceptions.Timeout:
-        print("Error: NewsAPI request timed out")
-        return []
-    
-    except requests.exceptions.ConnectionError:
-        print("Error: No internet connection")
-        return []
+        return articles
     
     except Exception as e:
-        print(f"Unexpected error fetching news: {e}")
+        print(f"Error fetching news for {ticker}: {e}")
         return []
-
-
+    
 
 if __name__ == "__main__":
     df_chart, df_1y = fetch_stock_data("RELIANCE.NS", chart_period="6mo")
@@ -188,6 +168,6 @@ if __name__ == "__main__":
     w52 = get_52w_position(df_1y)  # uses full 1 year data
     print(f"52W Position: {w52}")
 
-    news = fetch_news("Reliance Industries")
+    news = fetch_news("RELIANCE.NS")
     for article in news:
         print(f"- {article['title']} ({article['source']}, {article['publishedAt']})")
