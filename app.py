@@ -1,2 +1,43 @@
 import streamlit as st
-st.write("TradeSnap is alive")
+from data import fetch_stock_data, compute_indicators, is_volume_spike, get_signal, get_52w_position, fetch_news
+
+st.set_page_config(
+    page_title="TradeSnap",
+    page_icon="📈",
+    layout="wide"
+)
+
+st.title("📈 TradeSnap")
+st.caption("Daily Stock Snapshot · NSE Morning Briefing")
+
+with st.sidebar:
+    st.header("Watchlist")
+    
+    watchlist_input = st.text_area(
+        label="Enter tickers (one per line)",
+        value="RELIANCE.NS\nTCS.NS\nINFY.NS",
+        height=200,
+        help="Use NSE format — e.g. RELIANCE.NS, HDFCBANK.NS"
+    )
+    
+    chart_period = st.selectbox(
+        "Chart Period",
+        options=["1mo", "3mo", "6mo", "1y"],
+        index=2
+    )
+    
+    vol_threshold = st.slider(
+        "Volume Spike Threshold (× average)",
+        min_value=1.2,
+        max_value=3.0,
+        value=1.5,
+        step=0.1
+    )
+    
+    run = st.button("Run Briefing", use_container_width=True)
+
+tickers = [t.strip().upper() for t in watchlist_input.strip().splitlines() if t.strip()]
+tickers = [t + ".NS" if not t.endswith(".NS") else t for t in tickers]
+tickers = tickers[:10]
+
+st.write(tickers)
