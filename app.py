@@ -59,6 +59,32 @@ if run:
             signal = get_signal(df_chart)
             w52 = get_52w_position(df_1y)
             
-            st.write("Signal:", signal)
-            st.write("Volume spike:", spike, f"({ratio}x)")
-            st.write("52W Position:", w52)
+            last = df_chart.iloc[-1]
+            prev_close = df_chart.iloc[-2]["Close"]
+
+            price = last["Close"]
+            change = price - prev_close
+            change_pct = (change / prev_close) * 100
+
+            col1, col2, col3, col4 = st.columns(4)
+
+            with col1:
+                st.metric("Price", f"₹{price:,.2f}", f"{change_pct:+.2f}%")
+
+            with col2:
+                st.metric("52W High", f"₹{w52['52w_high']:,.2f}", f"{w52['pct_from_high']}% away")
+
+            with col3:
+                st.metric("52W Low", f"₹{w52['52w_low']:,.2f}", f"{w52['pct_from_low']}% above")
+
+            with col4:
+                st.metric("RSI", f"{round(last['RSI'], 1)}")
+
+            if spike:
+                st.warning(f"⚡ Volume Spike — {ratio}x average volume")
+            else:
+                st.info(f"Volume: {int(last['Volume']):,} · Avg: {int(last['AvgVol20']):,} · {ratio}x average")
+
+                st.caption(f"Signal: {signal}")
+
+                st.divider()
