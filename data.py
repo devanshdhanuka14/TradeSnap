@@ -6,23 +6,32 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
+import requests
+from requests.adapters import HTTPAdapter
+
 def fetch_stock_data(ticker: str, chart_period: str = "6mo"):
     try:
-        stock = yf.Ticker(ticker)
-        #fetching 1 year stock data for 52W high low comparision
-        #fetching 6months data only for charts so its more relevant for short term tracking and investments
+        session = requests.Session()
+        session.headers.update({
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        })
+        
+        stock = yf.Ticker(ticker, session=session)
+
         df_1y = stock.history(period="1y")
         df_chart = stock.history(period=chart_period)
-        
+
         if df_1y.empty or df_chart.empty:
-            print(f"Error: No data found for {ticker}. Check the ticker symbol.")
+            print(f"Error: No data found for {ticker}")
             return None, None, None
-        
+
         df_1y.drop(columns=["Dividends", "Stock Splits"], inplace=True)
         df_chart.drop(columns=["Dividends", "Stock Splits"], inplace=True)
+
         company_name = stock.info.get("longName", ticker)
-        
+
         return df_chart, df_1y, company_name
+
     except Exception as e:
         print(f"Error fetching {ticker}: {e}")
         return None, None, None
