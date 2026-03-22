@@ -91,6 +91,7 @@ if run:
     if not tickers:
         st.error("Please enter at least one ticker.")
     else:
+        snapshot = []
         for ticker in tickers:
             st.subheader(ticker)
             
@@ -148,4 +149,35 @@ if run:
                             st.caption(f"{article['source']} · {article['publishedAt']}")
                             st.divider()
                 
-                st.divider()
+
+                snapshot.append({
+                    "Ticker": ticker,
+                    "Price": round(price, 2),
+                    "Change%": round(change_pct, 2),
+                    "RSI": round(last["RSI"], 1),
+                    "MA20": round(last["MA20"], 2),
+                    "MA50": round(last["MA50"], 2),
+                    "Volume": int(last["Volume"]),
+                    "AvgVol20": int(last["AvgVol20"]),
+                    "VolumeSpike": spike,
+                    "SpikeRatio": ratio,
+                    "52W_High": w52["52w_high"],
+                    "52W_Low": w52["52w_low"],
+                    "52W_Position%": w52["position_pct"],
+                    "Signal": signal,
+                }) 
+        st.divider()
+
+        if snapshot:
+            import pandas as pd
+            df_snapshot = pd.DataFrame(snapshot)
+            csv = df_snapshot.to_csv(index=False)
+
+            st.download_button(
+            label="⬇ Export Snapshot as CSV",
+            data=csv,
+            file_name=f"tradesnap_snapshot.csv",
+            mime="text/csv"
+            )
+
+        
