@@ -1,5 +1,6 @@
 import streamlit as st
 from data import fetch_stock_data, compute_indicators, is_volume_spike, get_signal, get_52w_position, fetch_news
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 st.set_page_config(
     page_title="TradeSnap",
@@ -15,7 +16,7 @@ with st.sidebar:
     
     watchlist_input = st.text_area(
         label="Enter tickers (one per line)",
-        value="RELIANCE.NS\nTCS.NS\nINFY.NS",
+        value="RELIANCE.NS\nHDFCBANK.NS\nTCS.NS",
         height=200,
         help="Use NSE format — e.g. RELIANCE.NS, HDFCBANK.NS"
     )
@@ -92,8 +93,21 @@ if run:
         st.error("Please enter at least one ticker.")
     else:
         snapshot = []
-        for ticker in tickers:
+
+        def fetch_all(ticker):
             df_chart, df_1y, company_name = fetch_stock_data(ticker, chart_period)
+            return ticker, df_chart, df_1y, company_name
+
+        with st.spinner("Fetching data for all stocks..."):
+            with ThreadPoolExecutor() as executor:
+                futures = {executor.submit(fetch_all, ticker): ticker for ticker in tickers}
+                results = {}
+                for future in as_completed(futures):
+                    ticker, df_chart, df_1y, company_name = future.result()
+                    results[ticker] = (df_chart, df_1y, company_name)
+
+        for ticker in tickers:
+            df_chart, df_1y, company_name = results[ticker]
 
             if df_chart is None:
                 st.warning(f"Could not fetch data for {ticker}. Check the ticker symbol.")
