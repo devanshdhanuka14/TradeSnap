@@ -40,6 +40,53 @@ tickers = [t.strip().upper() for t in watchlist_input.strip().splitlines() if t.
 tickers = [t + ".NS" if not t.endswith(".NS") else t for t in tickers]
 tickers = tickers[:10]
 
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
+def build_chart(df, ticker):
+    fig = make_subplots(
+        rows=2, cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.03,
+        row_heights=[0.7, 0.3]
+    )
+
+    fig.add_trace(
+        go.Candlestick(
+            x=df.index,
+            open=df["Open"],
+            high=df["High"],
+            low=df["Low"],
+            close=df["Close"],
+            name="Price"
+        ),
+        row=1, col=1
+    )
+
+    fig.add_trace(
+        go.Scatter(x=df.index, y=df["MA20"], name="MA20", line=dict(color="blue", width=1.5)),
+        row=1, col=1
+    )
+
+    fig.add_trace(
+        go.Scatter(x=df.index, y=df["MA50"], name="MA50", line=dict(color="orange", width=1.5)),
+        row=1, col=1
+    )
+
+    fig.add_trace(
+        go.Bar(x=df.index, y=df["Volume"], name="Volume", marker_color="gray"),
+        row=2, col=1
+    )
+
+    fig.update_layout(
+        title=ticker,
+        xaxis_rangeslider_visible=False,
+        height=500,
+        hovermode="x unified"
+    )
+
+    return fig
+
 if run:
     if not tickers:
         st.error("Please enter at least one ticker.")
@@ -86,5 +133,8 @@ if run:
                 st.info(f"Volume: {int(last['Volume']):,} · Avg: {int(last['AvgVol20']):,} · {ratio}x average")
 
                 st.caption(f"Signal: {signal}")
+
+                fig = build_chart(df_chart, ticker)
+                st.plotly_chart(fig, use_container_width=True)
 
                 st.divider()
