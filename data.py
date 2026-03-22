@@ -16,16 +16,16 @@ def fetch_stock_data(ticker: str, chart_period: str = "6mo"):
         
         if df_1y.empty or df_chart.empty:
             print(f"Error: No data found for {ticker}. Check the ticker symbol.")
-            return None, None
+            return None, None, None
         
         df_1y.drop(columns=["Dividends", "Stock Splits"], inplace=True)
         df_chart.drop(columns=["Dividends", "Stock Splits"], inplace=True)
+        company_name = stock.info.get("longName", ticker)
         
-        return df_chart, df_1y
-    
+        return df_chart, df_1y, company_name
     except Exception as e:
         print(f"Error fetching {ticker}: {e}")
-        return None, None
+        return None, None, None
 
 def compute_indicators(df: pd.DataFrame):
     df["MA20"] = df["Close"].rolling(20).mean()
@@ -166,7 +166,8 @@ def fetch_news(ticker: str, n: int = 3):
     
 
 if __name__ == "__main__":
-    df_chart, df_1y = fetch_stock_data("RELIANCE.NS", chart_period="6mo")
+    df_chart, df_1y, company_name = fetch_stock_data("RELIANCE.NS", chart_period="6mo")
+    print(f"Company: {company_name}")
     df_chart = compute_indicators(df_chart)
 
     spike, ratio = is_volume_spike(df_chart)
