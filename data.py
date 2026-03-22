@@ -85,7 +85,7 @@ def get_signal(df: pd.DataFrame):
     else:
         momentum = "oversold — watch for bounce"
 
-    # Confluence of both trend and momentum
+    # Confluence
     if above_ma20 and above_ma50 and rsi > 55 and rsi <= 70:
         verdict = "STRONG BUY SIGNAL"
     elif above_ma20 and above_ma50 and rsi > 70:
@@ -101,7 +101,17 @@ def get_signal(df: pd.DataFrame):
     else:
         verdict = "MIXED SIGNALS"
 
-    return f"{verdict} · {trend} · RSI {rsi} ({momentum})"
+    # Reasoning
+    ma20_diff = round(((price - ma20) / ma20) * 100, 2)
+    ma50_diff = round(((price - ma50) / ma50) * 100, 2)
+
+    reasoning = (
+        f"Price is {'above' if above_ma20 else 'below'} MA20 by {abs(ma20_diff)}% "
+        f"and {'above' if above_ma50 else 'below'} MA50 by {abs(ma50_diff)}%. "
+        f"RSI at {rsi} indicates {momentum}."
+    )
+
+    return verdict, trend, reasoning
 
 def get_52w_position(df: pd.DataFrame):
     high52 = df["High"].max()
@@ -162,8 +172,10 @@ if __name__ == "__main__":
     spike, ratio = is_volume_spike(df_chart)
     print(f"Volume spike: {spike} ({ratio}x average)")
 
-    signal = get_signal(df_chart)
-    print(f"Signal: {signal}")
+    verdict, trend, reasoning = get_signal(df_chart)
+    print(f"Verdict: {verdict}")
+    print(f"Trend: {trend}")
+    print(f"Reasoning: {reasoning}")
 
     w52 = get_52w_position(df_1y)  # uses full 1 year data
     print(f"52W Position: {w52}")
