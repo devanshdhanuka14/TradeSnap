@@ -40,4 +40,25 @@ tickers = [t.strip().upper() for t in watchlist_input.strip().splitlines() if t.
 tickers = [t + ".NS" if not t.endswith(".NS") else t for t in tickers]
 tickers = tickers[:10]
 
-st.write(tickers)
+if run:
+    if not tickers:
+        st.error("Please enter at least one ticker.")
+    else:
+        for ticker in tickers:
+            st.subheader(ticker)
+            
+            df_chart, df_1y = fetch_stock_data(ticker, chart_period)
+            
+            if df_chart is None:
+                st.warning(f"Could not fetch data for {ticker}. Check the ticker symbol.")
+                continue
+            
+            df_chart = compute_indicators(df_chart)
+            
+            spike, ratio = is_volume_spike(df_chart, vol_threshold)
+            signal = get_signal(df_chart)
+            w52 = get_52w_position(df_1y)
+            
+            st.write("Signal:", signal)
+            st.write("Volume spike:", spike, f"({ratio}x)")
+            st.write("52W Position:", w52)
