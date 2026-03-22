@@ -137,4 +137,15 @@ if run:
                 fig = build_chart(df_chart, ticker)
                 st.plotly_chart(fig, use_container_width=True)
 
+                with st.expander(f"📰 Top Headlines — {ticker}"):
+                    articles = fetch_news(ticker)
+    
+                    if not articles:
+                        st.write("No headlines found.")
+                    else:
+                        for article in articles:
+                            st.markdown(f"**[{article['title']}]({article['url']})**")
+                            st.caption(f"{article['source']} · {article['publishedAt']}")
+                            st.divider()
+                
                 st.divider()
