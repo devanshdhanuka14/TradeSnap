@@ -97,14 +97,15 @@ if run:
         def fetch_all(ticker):
             df_chart, df_1y, company_name = fetch_stock_data(ticker, chart_period)
             return ticker, df_chart, df_1y, company_name
+        
+        import time
 
         with st.spinner("Fetching data for all stocks..."):
-            with ThreadPoolExecutor() as executor:
-                futures = {executor.submit(fetch_all, ticker): ticker for ticker in tickers}
-                results = {}
-                for future in as_completed(futures):
-                    ticker, df_chart, df_1y, company_name = future.result()
-                    results[ticker] = (df_chart, df_1y, company_name)
+            results = {}
+            for ticker in tickers:
+                df_chart, df_1y, company_name = fetch_stock_data(ticker, chart_period)
+                results[ticker] = (df_chart, df_1y, company_name)
+                time.sleep(0.5)
 
         for ticker in tickers:
             df_chart, df_1y, company_name = results[ticker]
