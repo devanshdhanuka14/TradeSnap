@@ -35,7 +35,7 @@ with st.sidebar:
         step=0.1
     )
     
-    run = st.button("Run Briefing", use_container_width=True)
+    run = st.button("Run Briefing", width='stretch')
 
 tickers = [t.strip().upper() for t in watchlist_input.strip().splitlines() if t.strip()]
 tickers = [t + ".NS" if not t.endswith(".NS") else t for t in tickers]
@@ -176,7 +176,7 @@ if run:
 
             # Chart
             fig = build_chart(df_chart, ticker)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
 
             with st.expander(f"📰 Top Headlines — {ticker}"):
                 articles = fetch_news(ticker)
