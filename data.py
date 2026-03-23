@@ -28,8 +28,7 @@ def fetch_stock_data(ticker: str, chart_period: str = "6mo"):
         return df_chart, df_1y, company_name
 
     except Exception as e:
-        print(f"Error fetching {ticker}: {e}")
-        return None, None, None
+        return None, None, str(e)
     
 def compute_indicators(df: pd.DataFrame):
     df["MA20"] = df["Close"].rolling(20).mean()

@@ -111,7 +111,7 @@ if run:
             df_chart, df_1y, company_name = results[ticker]
 
             if df_chart is None:
-                st.warning(f"Could not fetch data for {ticker}. Check the ticker symbol.")
+                st.warning(f"Could not fetch data for {ticker}: {company_name}")
                 continue
 
             df_chart = compute_indicators(df_chart)
